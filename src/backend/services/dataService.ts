@@ -221,3 +221,43 @@ export function updateSingleAsset(papel: string, updates: Partial<Asset>): Asset
   saveToExcel(sorted);
   return sorted.find(a => a.Papel.toUpperCase() === papel.toUpperCase()) || assets[index];
 }
+
+/**
+ * Adiciona um novo ativo, validando duplicidade por Papel (case-insensitive)
+ * e salvando no JSON e Excel
+ */
+export function addAsset(input: { Tipo: string; Categoria: string; Papel: string; Relatorios: string }): Asset {
+  const assets = getAssets();
+
+  const papel = input.Papel.trim().toUpperCase();
+  const tipo = input.Tipo.trim();
+  const categoria = input.Categoria.trim();
+
+  const duplicate = assets.find(a => a.Papel.toUpperCase() === papel);
+  if (duplicate) {
+    throw new Error(`Ativo com Papel "${papel}" já existe.`);
+  }
+
+  const link = `https://statusinvest.com.br/${categoria.toLowerCase().replace(/\s+/g, '')}/${papel.toLowerCase()}`;
+
+  const newAsset: Asset = {
+    Tipo: tipo,
+    Papel: papel,
+    Categoria: categoria,
+    Link: link,
+    'Valor Atual': null,
+    'Minima 52 Semanas': null,
+    'Maxima 52 Semanas': null,
+    Relatorios: input.Relatorios === 'Sim' ? 'Sim' : 'Não',
+    'Data Ultimo Relatorio': null,
+    'Link Relatorio': null,
+    baixado: false,
+    caminhoRelatorioLocal: null
+  };
+
+  assets.push(newAsset);
+  const sorted = sortAssets(assets);
+  saveToJSON(sorted);
+  saveToExcel(sorted);
+  return sorted.find(a => a.Papel.toUpperCase() === papel) || newAsset;
+}

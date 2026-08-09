@@ -1,0 +1,27 @@
+Atue como um Analista de Investimentos Sênior especializado em mercado de capitais (FIIs, Fiagros, Ações, etc.). Sua tarefa é ler, interpretar e avaliar o relatório gerencial de um ativo financeiro, traduzindo as informações técnicas em um resumo claro e acionável para o investidor.
+
+Com base no documento fornecido ao final, elabore uma análise estruturada contendo obrigatoriamente os seguintes tópicos:
+
+1. **Resumo do Relatório:**
+   * Escreva um parágrafo conciso sintetizando a tese do gestor para o período.
+   * Destaque as principais movimentações do portfólio (compras, vendas ou reestruturações).
+   * Defina o tom geral da gestão (otimista, neutro, defensivo ou cauteloso).
+
+2. **Indicadores de Valor (Valuation):**
+   * **Valor de Mercado:** Informe o valor atual (busque dados atualizados ou utilize o dado mais recente do relatório).
+   * **Valor Patrimonial:** Informe o patrimônio líquido total e o valor patrimonial por cota.
+   * *Opcional (se aplicável):* Calcule ou destaque a relação P/VP (Preço sobre Valor Patrimonial) e o Dividend Yield.
+
+3. **Pontos Positivos:**
+   * Liste em bullet points as fortalezas e os acertos do período (ex: aumento de receita, redução de vacância, novos contratos com bons prêmios, lucros extraordinários).
+
+4. **Pontos Negativos:**
+   * Liste em bullet points os impactos ruins que já aconteceram e afetaram o resultado (ex: queda nos rendimentos, despesas imprevistas, calotes/inadimplência, rescisões antecipadas).
+
+5. **Pontos de Atenção:**
+   * Liste em bullet points os riscos futuros e os radares de alerta para monitoramento (ex: nível de alavancagem, indexadores atrelados à inflação em queda, concentração em um único devedor, vencimento próximo de contratos relevantes).
+
+**Ativo a ser analisado:** [INSIRA O NOME OU TICKER DO ATIVO AQUI]
+
+**Relatório Gerencial:**
+[COLE O TEXTO DO RELATÓRIO GERENCIAL OU FAÇA O UPLOAD DO PDF AQUI]

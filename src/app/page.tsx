@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Asset } from '@/backend/types';
 import { ControlPanel } from '@/frontend/components/ControlPanel';
 import { AssetTable } from '@/frontend/components/AssetTable';
+import { AssetForm } from '@/frontend/components/AssetForm';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -14,6 +15,7 @@ export default function HomePage() {
   const [processingPapel, setProcessingPapel] = useState<string | null>(null);
   const [progressText, setProgressText] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   // Carrega os ativos iniciais
   const fetchAssets = async () => {
@@ -279,15 +281,28 @@ export default function HomePage() {
         progressText={progressText}
         selectedCount={selectedCount}
         totalAssets={assets.length}
+        showForm={showForm}
+        onToggleForm={() => setShowForm(prev => !prev)}
       />
 
-      <AssetTable
-        assets={assets}
-        selectedMap={selectedMap}
-        onToggleSelect={handleToggleSelect}
-        onToggleSelectAll={handleToggleSelectAll}
-        processingPapel={processingPapel}
-      />
+      {showForm ? (
+        <AssetForm
+          assets={assets}
+          onSuccess={(asset) => {
+            setAssets(prev => [...prev, asset]);
+          }}
+          onCancel={() => setShowForm(false)}
+          showToast={showToast}
+        />
+      ) : (
+        <AssetTable
+          assets={assets}
+          selectedMap={selectedMap}
+          onToggleSelect={handleToggleSelect}
+          onToggleSelectAll={handleToggleSelectAll}
+          processingPapel={processingPapel}
+        />
+      )}
     </div>
   );
 }

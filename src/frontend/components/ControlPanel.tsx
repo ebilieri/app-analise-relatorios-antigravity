@@ -11,6 +11,8 @@ interface ControlPanelProps {
   progressText: string;
   selectedCount: number;
   totalAssets: number;
+  showForm: boolean;
+  onToggleForm: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -22,8 +24,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   progressText,
   selectedCount,
   totalAssets,
+  showForm,
+  onToggleForm,
 }) => {
-  const isBusy = Boolean(loadingOp);
+  const isBusy = Boolean(loadingOp) || showForm;
 
   return (
     <div className="card shadow-sm border-0 mb-4 bg-body-tertiary">
@@ -39,6 +43,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
 
           <div className="d-flex flex-wrap gap-2">
+            <button
+              className={`btn ${showForm ? 'btn-dark' : 'btn-outline-dark'} d-flex align-items-center gap-2`}
+              onClick={onToggleForm}
+              disabled={isBusy && !showForm}
+              title={showForm ? 'Cancelar cadastro' : 'Cadastrar novo ativo'}
+            >
+              <i className="bi bi-plus-circle"></i>
+              {showForm ? 'Cancelar Cadastro' : 'Cadastrar Ativo'}
+            </button>
+
             <button
               className="btn btn-outline-secondary d-flex align-items-center gap-2"
               onClick={onSyncExcel}
