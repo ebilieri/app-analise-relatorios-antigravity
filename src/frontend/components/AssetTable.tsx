@@ -201,22 +201,33 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             </a>
                           ) : null}
 
-                          {asset.baixado && asset.caminhoRelatorioLocal ? (
-                            <a
-                              href={asset.caminhoRelatorioLocal}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn btn-sm btn-success d-inline-flex align-items-center gap-1 text-decoration-none shadow-sm"
-                              title="Abrir relatório PDF salvo no computador"
-                            >
-                              <i className="bi bi-file-earmark-check-fill"></i>
-                              Baixado <i className="bi bi-box-arrow-up-right small"></i>
-                            </a>
-                          ) : isPendingDownload ? (
-                            <span className="badge bg-warning text-dark border border-warning-subtle py-2 px-2">
-                              Pendente
-                            </span>
-                          ) : null}
+                           {asset.baixado && asset.caminhoRelatorioLocal ? (
+                             <a
+                               href={asset.caminhoRelatorioLocal}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="btn btn-sm btn-success d-inline-flex align-items-center gap-1 text-decoration-none shadow-sm"
+                               title="Abrir relatório PDF salvo no computador"
+                             >
+                               <i className="bi bi-file-earmark-check-fill"></i>
+                               Baixado <i className="bi bi-box-arrow-up-right small"></i>
+                             </a>
+                           ) : isPendingDownload ? (
+                             <span className="badge bg-warning text-dark border border-warning-subtle py-2 px-2">
+                               Pendente
+                             </span>
+                           ) : null}
+
+                           {asset.baixado && asset.caminhoRelatorioLocal ? (
+                             <a
+                               href={`/analise/${asset.Papel}`}
+                               className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                               title="Analisar relatório com IA"
+                             >
+                               <i className="bi bi-robot"></i>
+                               Analise
+                             </a>
+                           ) : null}
                         </div>
                       </td>
                     </tr>

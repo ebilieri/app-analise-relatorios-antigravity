@@ -24,4 +24,4 @@ Com base no documento fornecido ao final, elabore uma análise estruturada conte
 **Ativo a ser analisado:** [INSIRA O NOME OU TICKER DO ATIVO AQUI]
 
 **Relatório Gerencial:**
-[COLE O TEXTO DO RELATÓRIO GERENCIAL OU FAÇA O UPLOAD DO PDF AQUI]
+[Link do pdf no repositorio local]
