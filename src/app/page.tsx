@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Asset } from '@/backend/types';
 import { ControlPanel } from '@/frontend/components/ControlPanel';
 import { AssetTable } from '@/frontend/components/AssetTable';
+import { AssetForm } from '@/frontend/components/AssetForm';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
@@ -14,6 +15,40 @@ export default function HomePage() {
   const [processingPapel, setProcessingPapel] = useState<string | null>(null);
   const [progressText, setProgressText] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'danger'; text: string } | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+
+  const handleEditAsset = (asset: Asset) => {
+    setEditingAsset(asset);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteAsset = async (asset: Asset) => {
+    const confirmed = window.confirm(`Deseja realmente excluir o ativo "${asset.Papel}"? esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      setLoadingOp('delete');
+      const res = await axios.delete(`/api/assets?papel=${encodeURIComponent(asset.Papel)}`);
+      if (res.data.success) {
+        setAssets(prev => prev.filter(a => a.Papel !== asset.Papel));
+        setSelectedMap(prev => {
+          const nextMap = { ...prev };
+          delete nextMap[asset.Papel];
+          return nextMap;
+        });
+        showToast('success', `Ativo "${asset.Papel}" excluído com sucesso!`);
+      } else {
+        showToast('danger', res.data.error || 'Erro ao excluir ativo.');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Erro ao excluir ativo.';
+      showToast('danger', msg);
+    } finally {
+      setLoadingOp(null);
+    }
+  };
 
   // Carrega os ativos iniciais
   const fetchAssets = async () => {
@@ -105,7 +140,7 @@ export default function HomePage() {
         try {
           const res = await axios.post('/api/scrape-quote', {
             papel: asset.Papel,
-            link: asset.Link
+            linkCotacao: asset['Link Cotacao']
           });
 
           if (res.data.success && res.data.data) {
@@ -149,7 +184,7 @@ export default function HomePage() {
         try {
           const res = await axios.post('/api/scrape-report', {
             papel: asset.Papel,
-            link: asset.Link
+            linkRelatorio: asset['Link Relatorio']
           });
 
           if (res.data.success && res.data.data) {
@@ -182,7 +217,7 @@ export default function HomePage() {
   // 4. Baixar Relatórios (Sequencial, linha por linha)
   const handleDownloadReports = async () => {
     const selectedAssets = assets.filter(
-      a => selectedMap[a.Papel] && a['Link Relatorio'] && !a.baixado
+      a => selectedMap[a.Papel] && a['Link Download PDF'] && !a.baixado
     );
 
     if (selectedAssets.length === 0) {
@@ -202,7 +237,7 @@ export default function HomePage() {
           const res = await axios.post('/api/download-report', {
             papel: asset.Papel,
             dataUltimoRelatorio: asset['Data Ultimo Relatorio'],
-            linkRelatorio: asset['Link Relatorio']
+            linkDownloadPDF: asset['Link Download PDF']
           });
 
           if (res.data.success && res.data.data) {
@@ -234,7 +269,7 @@ export default function HomePage() {
   };
 
   const selectedCount = Object.keys(selectedMap).filter(
-    k => selectedMap[k] && assets.some(a => a.Papel === k && a['Link Relatorio'] && !a.baixado)
+    k => selectedMap[k] && assets.some(a => a.Papel === k && a['Link Download PDF'] && !a.baixado)
   ).length;
 
   // Previne Hydration Mismatch caso a renderização inicial do cliente difira do SSR
@@ -279,15 +314,48 @@ export default function HomePage() {
         progressText={progressText}
         selectedCount={selectedCount}
         totalAssets={assets.length}
+        showForm={showForm}
+        onToggleForm={() => {
+          if (showForm) {
+            setShowForm(false);
+            setEditingAsset(null);
+          } else {
+            setEditingAsset(null);
+            setShowForm(true);
+          }
+        }}
       />
 
-      <AssetTable
-        assets={assets}
-        selectedMap={selectedMap}
-        onToggleSelect={handleToggleSelect}
-        onToggleSelectAll={handleToggleSelectAll}
-        processingPapel={processingPapel}
-      />
+      {showForm ? (
+        <AssetForm
+          assets={assets}
+          initialData={editingAsset}
+          onSuccess={(asset, isEdit) => {
+            if (isEdit) {
+              setAssets(prev => prev.map(a => a.Papel === asset.Papel ? asset : a));
+            } else {
+              setAssets(prev => [...prev, asset]);
+            }
+            setEditingAsset(null);
+            setShowForm(false);
+          }}
+          onCancel={() => {
+            setEditingAsset(null);
+            setShowForm(false);
+          }}
+          showToast={showToast}
+        />
+      ) : (
+        <AssetTable
+          assets={assets}
+          selectedMap={selectedMap}
+          onToggleSelect={handleToggleSelect}
+          onToggleSelectAll={handleToggleSelectAll}
+          onEditAsset={handleEditAsset}
+          onDeleteAsset={handleDeleteAsset}
+          processingPapel={processingPapel}
+        />
+      )}
     </div>
   );
 }

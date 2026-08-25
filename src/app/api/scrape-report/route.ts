@@ -5,20 +5,21 @@ import { updateSingleAsset } from '@/backend/services/dataService';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { papel, link } = body;
+    const { papel, linkRelatorio, linkCotacao, link } = body;
+    const targetLink = linkRelatorio || linkCotacao || link;
 
-    if (!papel || !link) {
+    if (!papel || !targetLink) {
       return NextResponse.json(
-        { success: false, error: 'Papel e Link são obrigatórios' },
+        { success: false, error: 'Papel e Link Relatório são obrigatórios' },
         { status: 400 }
       );
     }
 
-    const reportData = await scrapeReport(link);
+    const reportData = await scrapeReport(targetLink);
 
     const updatedAsset = updateSingleAsset(papel, {
       'Data Ultimo Relatorio': reportData.dataUltimoRelatorio,
-      'Link Relatorio': reportData.linkRelatorio
+      'Link Download PDF': reportData.linkRelatorio
     });
 
     return NextResponse.json({
