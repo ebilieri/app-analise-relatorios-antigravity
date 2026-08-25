@@ -8,6 +8,7 @@ export interface Asset {
   "Maxima 52 Semanas": string | null;
   Relatorios: string; // "Sim" | "Não"
   "Data Ultimo Relatorio": string | null;
+  "Link Download PDF": string | null;
   "Link Relatorio": string | null;
   baixado?: boolean;
   caminhoRelatorioLocal?: string | null;

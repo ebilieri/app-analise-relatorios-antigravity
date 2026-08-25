@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAssets, addAsset } from '@/backend/services/dataService';
+import { getAssets, addAsset, updateSingleAsset } from '@/backend/services/dataService';
+import { Asset } from '@/backend/types';
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { Tipo, Categoria, Papel, Relatorios, linkRelatorio, 'Link Relatorio': linkRelatorioAlt } = body;
+    const { Tipo, Categoria, Papel, Relatorios, linkRelatorio, linkDownloadPDF, 'Link Relatorio': linkRelatorioAlt, 'Link Download PDF': linkDownloadPDFAlt } = body;
 
     if (!Tipo || !Categoria || !Papel || !Relatorios) {
       return NextResponse.json(
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
       Categoria,
       Papel,
       Relatorios,
-      linkRelatorio: linkRelatorio || linkRelatorioAlt || null
+      linkRelatorio: linkRelatorio || linkRelatorioAlt || null,
+      linkDownloadPDF: linkDownloadPDF || linkDownloadPDFAlt || null
     });
 
     return NextResponse.json({ success: true, data: asset }, { status: 201 });
@@ -42,6 +44,57 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { success: false, error: message },
       { status }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { Papel, Tipo, Categoria, Relatorios, linkRelatorio, 'Link Relatorio': linkRelatorioAlt } = body;
+
+    if (!Papel) {
+      return NextResponse.json(
+        { success: false, error: 'O campo Papel é obrigatório para edição.' },
+        { status: 400 }
+      );
+    }
+
+    const finalLinkRelatorio = linkRelatorio !== undefined ? linkRelatorio : linkRelatorioAlt;
+    const linkCotacao = Categoria && Papel
+      ? `https://statusinvest.com.br/${Categoria.toLowerCase().replace(/\s+/g, '')}/${Papel.trim().toLowerCase()}`
+      : undefined;
+
+    const updates: Partial<Asset> = {
+      Tipo,
+      Categoria,
+      Relatorios,
+      'Link Cotacao': linkCotacao,
+      'Link Relatorio': finalLinkRelatorio ? String(finalLinkRelatorio).trim() : null,
+      // Limpa os campos que não estão presentes na tela de edição:
+      'Valor Atual': null,
+      'Minima 52 Semanas': null,
+      'Maxima 52 Semanas': null,
+      'Data Ultimo Relatorio': null,
+      'Link Download PDF': null,
+      baixado: false,
+      caminhoRelatorioLocal: null
+    };
+
+    const updated = updateSingleAsset(Papel, updates);
+    if (!updated) {
+      return NextResponse.json(
+        { success: false, error: `Ativo "${Papel}" não encontrado.` },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Erro ao atualizar ativo:', error);
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
     );
   }
 }

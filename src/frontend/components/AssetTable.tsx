@@ -8,6 +8,7 @@ interface AssetTableProps {
   selectedMap: Record<string, boolean>;
   onToggleSelect: (papel: string) => void;
   onToggleSelectAll: (checked: boolean) => void;
+  onEditAsset: (asset: Asset) => void;
   processingPapel: string | null;
 }
 
@@ -25,6 +26,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   selectedMap,
   onToggleSelect,
   onToggleSelectAll,
+  onEditAsset,
   processingPapel,
 }) => {
   // Apenas ativos com relatório disponível e que AINDA NÃO foram baixados são elegíveis para seleção
@@ -188,9 +190,9 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                             ></span>
                           )}
 
-                          {asset['Link Relatorio'] ? (
+                          {asset['Link Download PDF'] ? (
                             <a
-                              href={asset['Link Relatorio']}
+                              href={asset['Link Download PDF']}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1"
@@ -228,6 +230,17 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                                Analise
                              </a>
                            ) : null}
+
+                           <button
+                             type="button"
+                             className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                             onClick={() => onEditAsset(asset)}
+                             disabled={Boolean(processingPapel)}
+                             title={`Editar ativo ${asset.Papel}`}
+                           >
+                             <i className="bi bi-pencil-square"></i>
+                             Editar
+                           </button>
                         </div>
                       </td>
                     </tr>

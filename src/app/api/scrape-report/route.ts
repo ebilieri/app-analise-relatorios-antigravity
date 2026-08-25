@@ -5,12 +5,12 @@ import { updateSingleAsset } from '@/backend/services/dataService';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { papel, linkCotacao, link } = body;
-    const targetLink = linkCotacao || link;
+    const { papel, linkRelatorio, linkCotacao, link } = body;
+    const targetLink = linkRelatorio || linkCotacao || link;
 
     if (!papel || !targetLink) {
       return NextResponse.json(
-        { success: false, error: 'Papel e Link Cotação são obrigatórios' },
+        { success: false, error: 'Papel e Link Relatório são obrigatórios' },
         { status: 400 }
       );
     }
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const updatedAsset = updateSingleAsset(papel, {
       'Data Ultimo Relatorio': reportData.dataUltimoRelatorio,
-      'Link Relatorio': reportData.linkRelatorio
+      'Link Download PDF': reportData.linkRelatorio
     });
 
     return NextResponse.json({

@@ -80,11 +80,12 @@ function downloadFileNative(url: string, destPath: string): Promise<boolean> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { papel, dataUltimoRelatorio, linkRelatorio } = body;
+    const { papel, dataUltimoRelatorio, linkDownloadPDF, linkRelatorio } = body;
+    const targetLinkPDF = linkDownloadPDF || linkRelatorio;
 
-    if (!papel || !linkRelatorio) {
+    if (!papel || !targetLinkPDF) {
       return NextResponse.json(
-        { success: false, error: 'Papel e LinkRelatorio são obrigatórios para download' },
+        { success: false, error: 'Papel e LinkDownloadPDF são obrigatórios para download' },
         { status: 400 }
       );
     }
@@ -105,11 +106,11 @@ export async function POST(req: NextRequest) {
       alreadyExists = true;
       console.log(`Relatório já existe localmente: ${fileName}`);
     } else {
-      console.log(`Baixando relatório de ${papel} a partir de ${linkRelatorio}...`);
+      console.log(`Baixando relatório de ${papel} a partir de ${targetLinkPDF}...`);
 
       let downloaded = false;
       try {
-        await downloadFileNative(linkRelatorio, filePath);
+        await downloadFileNative(targetLinkPDF, filePath);
         downloaded = true;
       } catch (nativeErr) {
         console.warn(`[Download Nativo Falhou para ${papel}]:`, (nativeErr as Error).message, 'Tentando fallback via Puppeteer...');
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
             args: ['--no-sandbox', '--disable-setuid-sandbox']
           });
           const page = await browser.newPage();
-          const response = await page.goto(linkRelatorio, { waitUntil: 'networkidle2', timeout: 30000 });
+          const response = await page.goto(targetLinkPDF, { waitUntil: 'networkidle2', timeout: 30000 });
           if (response) {
             const buffer = await response.buffer();
             fs.writeFileSync(filePath, buffer);

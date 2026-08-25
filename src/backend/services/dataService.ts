@@ -41,6 +41,7 @@ function normalizeAsset(row: Record<string, any>): Asset {
     'Maxima 52 Semanas': row['Maxima 52 Semanas'] ? String(row['Maxima 52 Semanas']).trim() : null,
     Relatorios: row['Relatorios'] ? String(row['Relatorios']).trim() : 'Não',
     'Data Ultimo Relatorio': row['Data Ultimo Relatorio'] ? String(row['Data Ultimo Relatorio']).trim() : null,
+    'Link Download PDF': row['Link Download PDF'] ? String(row['Link Download PDF']).trim() : null,
     'Link Relatorio': row['Link Relatorio'] ? String(row['Link Relatorio']).trim() : null,
     baixado: Boolean(row['baixado']),
     caminhoRelatorioLocal: row['caminhoRelatorioLocal'] ? String(row['caminhoRelatorioLocal']).trim() : null
@@ -153,7 +154,8 @@ export function syncWithExcel(): Asset[] {
         'Minima 52 Semanas': existing['Minima 52 Semanas'] || excelItem['Minima 52 Semanas'],
         'Maxima 52 Semanas': existing['Maxima 52 Semanas'] || excelItem['Maxima 52 Semanas'],
         'Data Ultimo Relatorio': existing['Data Ultimo Relatorio'] || excelItem['Data Ultimo Relatorio'],
-        'Link Relatorio': existing['Link Relatorio'] || excelItem['Link Relatorio'],
+        'Link Download PDF': existing['Link Download PDF'] || (excelItem as any)['Link Download PDF'] || null,
+        'Link Relatorio': existing['Link Relatorio'] || (excelItem as any)['Link Relatorio'] || null,
         caminhoRelatorioLocal: existing.caminhoRelatorioLocal || null
       });
     } else {
@@ -188,7 +190,7 @@ export function updateSingleAsset(papel: string, updates: Partial<Asset>): Asset
  * Adiciona um novo ativo, validando duplicidade por Papel (case-insensitive)
  * e salvando no JSON
  */
-export function addAsset(input: { Tipo: string; Categoria: string; Papel: string; Relatorios: string; linkRelatorio?: string | null }): Asset {
+export function addAsset(input: { Tipo: string; Categoria: string; Papel: string; Relatorios: string; linkDownloadPDF?: string | null; linkRelatorio?: string | null }): Asset {
   const assets = getAssets();
 
   const papel = input.Papel.trim().toUpperCase();
@@ -212,6 +214,7 @@ export function addAsset(input: { Tipo: string; Categoria: string; Papel: string
     'Maxima 52 Semanas': null,
     Relatorios: input.Relatorios === 'Sim' ? 'Sim' : 'Não',
     'Data Ultimo Relatorio': null,
+    'Link Download PDF': input.linkDownloadPDF ? input.linkDownloadPDF.trim() : null,
     'Link Relatorio': input.linkRelatorio ? input.linkRelatorio.trim() : null,
     baixado: false,
     caminhoRelatorioLocal: null

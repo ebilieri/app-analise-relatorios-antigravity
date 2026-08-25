@@ -6,12 +6,21 @@ import { Asset } from '@/backend/types';
 
 interface AssetFormProps {
   assets: Asset[];
-  onSuccess: (asset: Asset) => void;
+  initialData?: Asset | null;
+  onSuccess: (asset: Asset, isEdit: boolean) => void;
   onCancel: () => void;
   showToast: (type: 'success' | 'danger', text: string) => void;
 }
 
-export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCancel, showToast }) => {
+export const AssetForm: React.FC<AssetFormProps> = ({
+  assets,
+  initialData,
+  onSuccess,
+  onCancel,
+  showToast
+}) => {
+  const isEditing = Boolean(initialData);
+
   const [tipo, setTipo] = useState('');
   const [categoria, setCategoria] = useState('');
   const [papel, setPapel] = useState('');
@@ -19,6 +28,19 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
   const [linkRelatorio, setLinkRelatorio] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setTipo(initialData.Tipo || '');
+      setCategoria(initialData.Categoria || '');
+      setPapel(initialData.Papel || '');
+      setRelatorios(initialData.Relatorios || 'Não');
+      setLinkRelatorio(initialData['Link Relatorio'] || '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      resetForm();
+    }
+  }, [initialData]);
 
   const uniqueTipos = Array.from(new Set(assets.map(a => a.Tipo).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, 'pt-BR')
@@ -33,10 +55,10 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
     : '';
 
   useEffect(() => {
-    if (categoria || papel) {
+    if (!isEditing && (categoria || papel)) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [categoria, papel]);
+  }, [categoria, papel, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,23 +72,40 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
     setLoading(true);
 
     try {
-      const res = await axios.post('/api/assets', {
-        Tipo: tipo,
-        Categoria: categoria,
-        Papel: papel,
-        Relatorios: relatorios,
-        linkRelatorio: linkRelatorio
-      });
+      if (isEditing) {
+        const res = await axios.put('/api/assets', {
+          Papel: papel,
+          Tipo: tipo,
+          Categoria: categoria,
+          Relatorios: relatorios,
+          linkRelatorio: linkRelatorio
+        });
 
-      if (res.data.success) {
-        showToast('success', `Ativo ${res.data.data.Papel} cadastrado com sucesso!`);
-        onSuccess(res.data.data);
-        resetForm();
+        if (res.data.success) {
+          showToast('success', `Ativo ${res.data.data.Papel} atualizado com sucesso!`);
+          onSuccess(res.data.data, true);
+        } else {
+          setError(res.data.error || 'Erro ao atualizar ativo.');
+        }
       } else {
-        setError(res.data.error || 'Erro ao cadastrar ativo.');
+        const res = await axios.post('/api/assets', {
+          Tipo: tipo,
+          Categoria: categoria,
+          Papel: papel,
+          Relatorios: relatorios,
+          linkRelatorio: linkRelatorio
+        });
+
+        if (res.data.success) {
+          showToast('success', `Ativo ${res.data.data.Papel} cadastrado com sucesso!`);
+          onSuccess(res.data.data, false);
+          resetForm();
+        } else {
+          setError(res.data.error || 'Erro ao cadastrar ativo.');
+        }
       }
     } catch (err: any) {
-      const msg = err.response?.data?.error || 'Erro ao cadastrar ativo.';
+      const msg = err.response?.data?.error || (isEditing ? 'Erro ao atualizar ativo.' : 'Erro ao cadastrar ativo.');
       setError(msg);
     } finally {
       setLoading(false);
@@ -87,7 +126,8 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
       <div className="card-body p-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h2 className="h5 mb-0 text-primary fw-bold">
-            <i className="bi bi-plus-circle me-2"></i>Cadastrar Novo Ativo
+            <i className={`bi ${isEditing ? 'bi-pencil-square' : 'bi-plus-circle'} me-2`}></i>
+            {isEditing ? `Editar Ativo — ${papel}` : 'Cadastrar Novo Ativo'}
           </h2>
           <button
             type="button"
@@ -155,10 +195,14 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
                 className="form-control"
                 value={papel}
                 onChange={e => setPapel(e.target.value)}
-                disabled={loading}
+                disabled={loading || isEditing}
+                readOnly={isEditing}
                 placeholder="Ex: PETR4"
                 required
               />
+              {isEditing && (
+                <div className="form-text text-muted small">Identificador único (não editável).</div>
+              )}
             </div>
 
             <div className="col-md-3">
@@ -211,7 +255,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
                 placeholder="Ex: https://exemplo.com/relatorio.pdf (livre digitação)"
               />
               <div className="form-text text-muted small">
-                Link direto para o relatório PDF (opcional).
+                Link direto para o relatório (opcional).
               </div>
             </div>
           </div>
@@ -237,8 +281,8 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
                 </>
               ) : (
                 <>
-                  <i className="bi bi-check-lg"></i>
-                  Cadastrar
+                  <i className={`bi ${isEditing ? 'bi-check2-square' : 'bi-check-lg'}`}></i>
+                  {isEditing ? 'Salvar Alterações' : 'Cadastrar'}
                 </>
               )}
             </button>
