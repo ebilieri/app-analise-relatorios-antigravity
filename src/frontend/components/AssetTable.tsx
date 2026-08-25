@@ -125,7 +125,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
 
                       <td>
                         <a
-                          href={asset.Link}
+                          href={asset['Link Cotacao']}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="fw-bold text-decoration-none text-primary"

@@ -2,7 +2,7 @@ export interface Asset {
   Tipo: string;
   Papel: string;
   Categoria: string;
-  Link: string;
+  "Link Cotacao": string;
   "Valor Atual": string | null;
   "Minima 52 Semanas": string | null;
   "Maxima 52 Semanas": string | null;

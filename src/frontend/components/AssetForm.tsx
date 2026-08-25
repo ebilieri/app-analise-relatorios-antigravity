@@ -16,6 +16,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
   const [categoria, setCategoria] = useState('');
   const [papel, setPapel] = useState('');
   const [relatorios, setRelatorios] = useState('Não');
+  const [linkRelatorio, setLinkRelatorio] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,7 +54,8 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
         Tipo: tipo,
         Categoria: categoria,
         Papel: papel,
-        Relatorios: relatorios
+        Relatorios: relatorios,
+        linkRelatorio: linkRelatorio
       });
 
       if (res.data.success) {
@@ -76,6 +78,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
     setCategoria('');
     setPapel('');
     setRelatorios('Não');
+    setLinkRelatorio('');
     setError('');
   };
 
@@ -177,20 +180,38 @@ export const AssetForm: React.FC<AssetFormProps> = ({ assets, onSuccess, onCance
           </div>
 
           <div className="row g-3 mt-0">
-            <div className="col-12">
-              <label htmlFor="link" className="form-label fw-semibold small text-uppercase text-muted">
-                Link (automático)
+            <div className="col-md-6">
+              <label htmlFor="linkCotacao" className="form-label fw-semibold small text-uppercase text-muted">
+                Link Cotação (automático)
               </label>
               <input
-                id="link"
+                id="linkCotacao"
                 type="text"
                 className="form-control font-monospace small"
                 value={generatedLink}
                 readOnly
-                placeholder="Selecione Categoria e digite o Papel para gerar o link"
+                placeholder="Selecione Categoria e digite o Papel para gerar o link de cotação"
               />
               <div className="form-text text-muted small">
                 Gerado automaticamente a partir de Categoria e Papel.
+              </div>
+            </div>
+
+            <div className="col-md-6">
+              <label htmlFor="linkRelatorio" className="form-label fw-semibold small text-uppercase text-muted">
+                Link Relatório
+              </label>
+              <input
+                id="linkRelatorio"
+                type="url"
+                className="form-control font-monospace small"
+                value={linkRelatorio}
+                onChange={e => setLinkRelatorio(e.target.value)}
+                disabled={loading}
+                placeholder="Ex: https://exemplo.com/relatorio.pdf (livre digitação)"
+              />
+              <div className="form-text text-muted small">
+                Link direto para o relatório PDF (opcional).
               </div>
             </div>
           </div>

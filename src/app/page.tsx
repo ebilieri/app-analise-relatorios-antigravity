@@ -107,7 +107,7 @@ export default function HomePage() {
         try {
           const res = await axios.post('/api/scrape-quote', {
             papel: asset.Papel,
-            link: asset.Link
+            linkCotacao: asset['Link Cotacao']
           });
 
           if (res.data.success && res.data.data) {
@@ -151,7 +151,7 @@ export default function HomePage() {
         try {
           const res = await axios.post('/api/scrape-report', {
             papel: asset.Papel,
-            link: asset.Link
+            linkCotacao: asset['Link Cotacao']
           });
 
           if (res.data.success && res.data.data) {

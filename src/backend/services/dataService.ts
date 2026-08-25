@@ -7,18 +7,6 @@ const ROOT_DIR = process.cwd();
 const JSON_PATH = path.join(ROOT_DIR, 'data.json');
 const EXCEL_PATH = path.join(ROOT_DIR, 'fundos-para-analise.xlsx');
 
-const HEADERS = [
-  'Tipo',
-  'Papel',
-  'Categoria',
-  'Link',
-  'Valor Atual',
-  'Minima 52 Semanas',
-  'Maxima 52 Semanas',
-  'Relatorios',
-  'Data Ultimo Relatorio',
-  'Link Relatorio'
-];
 
 /**
  * Ordena a lista de ativos primeiramente por Tipo (A-Z) e secundariamente por Papel (A-Z)
@@ -47,7 +35,7 @@ function normalizeAsset(row: Record<string, any>): Asset {
     Tipo: row['Tipo'] ? String(row['Tipo']).trim() : '',
     Papel: row['Papel'] ? String(row['Papel']).trim().toUpperCase() : '',
     Categoria: row['Categoria'] ? String(row['Categoria']).trim() : '',
-    Link: row['Link'] ? String(row['Link']).trim() : '',
+    'Link Cotacao': row['Link Cotacao'] ? String(row['Link Cotacao']).trim() : (row['Link'] ? String(row['Link']).trim() : ''),
     'Valor Atual': row['Valor Atual'] ? String(row['Valor Atual']).trim() : null,
     'Minima 52 Semanas': row['Minima 52 Semanas'] ? String(row['Minima 52 Semanas']).trim() : null,
     'Maxima 52 Semanas': row['Maxima 52 Semanas'] ? String(row['Maxima 52 Semanas']).trim() : null,
@@ -81,29 +69,6 @@ export function saveToJSON(assets: Asset[]): void {
   fs.writeFileSync(JSON_PATH, JSON.stringify(sorted, null, 2), 'utf-8');
 }
 
-/**
- * Salva a lista de ativos de volta na planilha Excel ordenados por Tipo e Papel
- */
-export function saveToExcel(assets: Asset[]): void {
-  const sorted = sortAssets(assets);
-  const exportData = sorted.map(a => ({
-    'Tipo': a['Tipo'],
-    'Papel': a['Papel'],
-    'Categoria': a['Categoria'],
-    'Link': a['Link'],
-    'Valor Atual': a['Valor Atual'] || '',
-    'Minima 52 Semanas': a['Minima 52 Semanas'] || '',
-    'Maxima 52 Semanas': a['Maxima 52 Semanas'] || '',
-    'Relatorios': a['Relatorios'],
-    'Data Ultimo Relatorio': a['Data Ultimo Relatorio'] || '',
-    'Link Relatorio': a['Link Relatorio'] || ''
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(exportData, { header: HEADERS });
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
-  XLSX.writeFile(workbook, EXCEL_PATH);
-}
 
 /**
  * Obtém todos os ativos. Se data.json existir, lê dele e valida a existência física dos relatórios.
@@ -149,7 +114,6 @@ export function getAssets(): Asset[] {
   // Carga inicial
   const assets = readFromExcel();
   saveToJSON(assets);
-  saveToExcel(assets);
   return assets;
 }
 
@@ -183,7 +147,7 @@ export function syncWithExcel(): Asset[] {
         ...existing,
         Tipo: excelItem.Tipo,
         Categoria: excelItem.Categoria,
-        Link: excelItem.Link,
+        'Link Cotacao': excelItem['Link Cotacao'] || (excelItem as any).Link || existing['Link Cotacao'],
         Relatorios: excelItem.Relatorios,
         'Valor Atual': existing['Valor Atual'] || excelItem['Valor Atual'],
         'Minima 52 Semanas': existing['Minima 52 Semanas'] || excelItem['Minima 52 Semanas'],
@@ -199,12 +163,11 @@ export function syncWithExcel(): Asset[] {
 
   const mergedAssets = sortAssets(Array.from(assetMap.values()));
   saveToJSON(mergedAssets);
-  saveToExcel(mergedAssets);
   return mergedAssets;
 }
 
 /**
- * Atualiza um único ativo e salva as mudanças no JSON e no Excel (mantendo a ordenação por Tipo e Papel)
+ * Atualiza um único ativo e salva as mudanças no JSON (mantendo a ordenação por Tipo e Papel)
  */
 export function updateSingleAsset(papel: string, updates: Partial<Asset>): Asset | null {
   const assets = getAssets();
@@ -218,15 +181,14 @@ export function updateSingleAsset(papel: string, updates: Partial<Asset>): Asset
 
   const sorted = sortAssets(assets);
   saveToJSON(sorted);
-  saveToExcel(sorted);
   return sorted.find(a => a.Papel.toUpperCase() === papel.toUpperCase()) || assets[index];
 }
 
 /**
  * Adiciona um novo ativo, validando duplicidade por Papel (case-insensitive)
- * e salvando no JSON e Excel
+ * e salvando no JSON
  */
-export function addAsset(input: { Tipo: string; Categoria: string; Papel: string; Relatorios: string }): Asset {
+export function addAsset(input: { Tipo: string; Categoria: string; Papel: string; Relatorios: string; linkRelatorio?: string | null }): Asset {
   const assets = getAssets();
 
   const papel = input.Papel.trim().toUpperCase();
@@ -244,13 +206,13 @@ export function addAsset(input: { Tipo: string; Categoria: string; Papel: string
     Tipo: tipo,
     Papel: papel,
     Categoria: categoria,
-    Link: link,
+    'Link Cotacao': link,
     'Valor Atual': null,
     'Minima 52 Semanas': null,
     'Maxima 52 Semanas': null,
     Relatorios: input.Relatorios === 'Sim' ? 'Sim' : 'Não',
     'Data Ultimo Relatorio': null,
-    'Link Relatorio': null,
+    'Link Relatorio': input.linkRelatorio ? input.linkRelatorio.trim() : null,
     baixado: false,
     caminhoRelatorioLocal: null
   };
@@ -258,6 +220,5 @@ export function addAsset(input: { Tipo: string; Categoria: string; Papel: string
   assets.push(newAsset);
   const sorted = sortAssets(assets);
   saveToJSON(sorted);
-  saveToExcel(sorted);
   return sorted.find(a => a.Papel.toUpperCase() === papel) || newAsset;
 }

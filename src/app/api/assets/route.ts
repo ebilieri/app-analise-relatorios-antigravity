@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { Tipo, Categoria, Papel, Relatorios } = body;
+    const { Tipo, Categoria, Papel, Relatorios, linkRelatorio, 'Link Relatorio': linkRelatorioAlt } = body;
 
     if (!Tipo || !Categoria || !Papel || !Relatorios) {
       return NextResponse.json(
@@ -26,7 +26,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const asset = addAsset({ Tipo, Categoria, Papel, Relatorios });
+    const asset = addAsset({
+      Tipo,
+      Categoria,
+      Papel,
+      Relatorios,
+      linkRelatorio: linkRelatorio || linkRelatorioAlt || null
+    });
 
     return NextResponse.json({ success: true, data: asset }, { status: 201 });
   } catch (error) {
