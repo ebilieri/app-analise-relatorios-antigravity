@@ -9,6 +9,7 @@ interface AssetTableProps {
   onToggleSelect: (papel: string) => void;
   onToggleSelectAll: (checked: boolean) => void;
   onEditAsset: (asset: Asset) => void;
+  onDeleteAsset: (asset: Asset) => void;
   processingPapel: string | null;
 }
 
@@ -27,6 +28,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   onToggleSelect,
   onToggleSelectAll,
   onEditAsset,
+  onDeleteAsset,
   processingPapel,
 }) => {
   // Apenas ativos com relatório disponível e que AINDA NÃO foram baixados são elegíveis para seleção
@@ -69,7 +71,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                 <th>Max. 52 Semanas</th>
                 <th className="text-center">Relatórios</th>
                 <th>Data Últ. Relatório</th>
-                <th className="text-center">Ações / Download</th>
+                <th className="text-end pe-3">Ações / Download</th>
               </tr>
             </thead>
             <tbody>
@@ -180,11 +182,11 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                         )}
                       </td>
 
-                      <td className="text-center">
-                        <div className="d-flex align-items-center justify-content-center gap-2">
+                      <td className="text-end pe-3">
+                        <div className="d-flex align-items-center justify-content-end gap-2">
                           {isProcessing && (
                             <span
-                              className="spinner-border spinner-border-sm text-primary"
+                              className="spinner-border spinner-border-sm text-primary ms-auto"
                               role="status"
                               aria-hidden="true"
                             ></span>
@@ -231,16 +233,27 @@ export const AssetTable: React.FC<AssetTableProps> = ({
                              </a>
                            ) : null}
 
-                           <button
-                             type="button"
-                             className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
-                             onClick={() => onEditAsset(asset)}
-                             disabled={Boolean(processingPapel)}
-                             title={`Editar ativo ${asset.Papel}`}
-                           >
-                             <i className="bi bi-pencil-square"></i>
-                             Editar
-                           </button>
+                          <div className="d-flex align-items-center gap-1 ms-auto">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary d-inline-flex align-items-center justify-content-center"
+                              onClick={() => onEditAsset(asset)}
+                              disabled={Boolean(processingPapel)}
+                              title={`Editar ativo ${asset.Papel}`}
+                            >
+                              <i className="bi bi-pencil-square"></i>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                              onClick={() => onDeleteAsset(asset)}
+                              disabled={Boolean(processingPapel)}
+                              title={`Excluir ativo ${asset.Papel}`}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

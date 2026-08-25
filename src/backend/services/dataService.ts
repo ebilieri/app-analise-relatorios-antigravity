@@ -225,3 +225,19 @@ export function addAsset(input: { Tipo: string; Categoria: string; Papel: string
   saveToJSON(sorted);
   return sorted.find(a => a.Papel.toUpperCase() === papel) || newAsset;
 }
+
+/**
+ * Exclui um ativo pelo Papel e salva a lista atualizada no JSON
+ */
+export function deleteAsset(papel: string): boolean {
+  const assets = getAssets();
+  const filtered = assets.filter(a => a.Papel.toUpperCase() !== papel.trim().toUpperCase());
+
+  if (filtered.length === assets.length) {
+    return false;
+  }
+
+  const sorted = sortAssets(filtered);
+  saveToJSON(sorted);
+  return true;
+}

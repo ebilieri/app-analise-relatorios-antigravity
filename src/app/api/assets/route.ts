@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAssets, addAsset, updateSingleAsset } from '@/backend/services/dataService';
+import { getAssets, addAsset, updateSingleAsset, deleteAsset } from '@/backend/services/dataService';
 import { Asset } from '@/backend/types';
 
 export async function GET() {
@@ -92,6 +92,36 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     console.error('Erro ao atualizar ativo:', error);
+    return NextResponse.json(
+      { success: false, error: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const papel = searchParams.get('papel');
+
+    if (!papel) {
+      return NextResponse.json(
+        { success: false, error: 'O parâmetro papel é obrigatório para exclusão.' },
+        { status: 400 }
+      );
+    }
+
+    const deleted = deleteAsset(papel);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: `Ativo "${papel}" não encontrado.` },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, message: `Ativo "${papel}" excluído com sucesso.` });
+  } catch (error) {
+    console.error('Erro ao excluir ativo:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

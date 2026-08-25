@@ -24,6 +24,32 @@ export default function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleDeleteAsset = async (asset: Asset) => {
+    const confirmed = window.confirm(`Deseja realmente excluir o ativo "${asset.Papel}"? esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      setLoadingOp('delete');
+      const res = await axios.delete(`/api/assets?papel=${encodeURIComponent(asset.Papel)}`);
+      if (res.data.success) {
+        setAssets(prev => prev.filter(a => a.Papel !== asset.Papel));
+        setSelectedMap(prev => {
+          const nextMap = { ...prev };
+          delete nextMap[asset.Papel];
+          return nextMap;
+        });
+        showToast('success', `Ativo "${asset.Papel}" excluído com sucesso!`);
+      } else {
+        showToast('danger', res.data.error || 'Erro ao excluir ativo.');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Erro ao excluir ativo.';
+      showToast('danger', msg);
+    } finally {
+      setLoadingOp(null);
+    }
+  };
+
   // Carrega os ativos iniciais
   const fetchAssets = async () => {
     try {
@@ -326,6 +352,7 @@ export default function HomePage() {
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}
           onEditAsset={handleEditAsset}
+          onDeleteAsset={handleDeleteAsset}
           processingPapel={processingPapel}
         />
       )}
