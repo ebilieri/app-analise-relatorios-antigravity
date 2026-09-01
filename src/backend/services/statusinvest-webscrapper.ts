@@ -14,7 +14,7 @@ const DEFAULT_HEADERS = {
 };
 
 /**
- * Tenta extrair informações do último relatório via Axios analisando atributos data-page no HTML do StatusInvest
+ * Tenta extrair informações do último relatório via Axios analisando o HTML renderizado ou o atributo data-page
  */
 async function scrapeWithAxios(url: string): Promise<ReportData | null> {
   try {
@@ -25,7 +25,31 @@ async function scrapeWithAxios(url: string): Promise<ReportData | null> {
 
     const $ = cheerio.load(response.data);
 
-    // Procura elementos div.documents.card ou inputs com atributo data-page
+    // 1. Procura primeiro nos elementos DOM renderizados no container de documentos
+    const domItems = $('#document-section .list > div, div.documents.card .list > div, div.documents .list > div');
+    for (let i = 0; i < domItems.length; i++) {
+      const el = $(domItems[i]);
+      const text = el.text().trim();
+      const lowerText = text.toLowerCase();
+
+      const isReport = lowerText.includes('relatório') || lowerText.includes('relatorio');
+      const isCancelled = lowerText.includes('cancelado');
+
+      if (isReport && !isCancelled) {
+        const link = el.find('a[href*="exibirDocumento"], a[href*="fnet"], a[href*="pdf"]').attr('href');
+        const dateMatch = text.match(/\d{2}\/\d{2}\/\d{4}/);
+        const dateText = dateMatch ? dateMatch[0] : null;
+
+        if (link || dateText) {
+          return {
+            dataUltimoRelatorio: dateText,
+            linkRelatorio: link ? (link.startsWith('http') ? link : `https://statusinvest.com.br${link}`) : null
+          };
+        }
+      }
+    }
+
+    // 2. Procura no atributo JSON data-page (filtrando ESTRITAMENTE relatórios)
     let dataPageAttr = $('div.documents.card[data-page]').attr('data-page') ||
                        $('[data-page]').attr('data-page') ||
                        $('input#results').val() as string ||
@@ -39,18 +63,17 @@ async function scrapeWithAxios(url: string): Promise<ReportData | null> {
           const relatorios = docs.filter((item: any) => {
             const desc = (item.description || item.type || item.tipo || item.title || '').toLowerCase();
             const category = String(item.category || item.categoria || item.categoryId || '');
-            return desc.includes('relatório') || desc.includes('relatorio') || category === '6';
+            const statusName = String(item.statusName || item.status || '').toLowerCase();
+            const isCancelled = statusName.includes('cancelado') || item.status === 2;
+            const isReport = desc.includes('relatório') || desc.includes('relatorio') || category === '6';
+            return isReport && !isCancelled;
           });
 
-          const candidates = relatorios.length > 0 ? relatorios : docs;
+          if (relatorios.length > 0) {
+            const latest = relatorios[0];
+            const date = latest.dataEntrega || latest.date || latest.data || latest.createdDate || null;
+            const link = latest.link || latest.url || (latest.id ? `https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?id=${latest.id}` : null);
 
-          // Pega o mais recente
-          const latest = candidates[0];
-
-          const date = latest.dataEntrega || latest.date || latest.data || latest.createdDate || null;
-          const link = latest.link || latest.url || (latest.id ? `https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?id=${latest.id}` : null);
-
-          if (date || link) {
             return {
               dataUltimoRelatorio: date ? String(date).trim() : null,
               linkRelatorio: link ? String(link).trim() : null
@@ -62,19 +85,6 @@ async function scrapeWithAxios(url: string): Promise<ReportData | null> {
       }
     }
 
-    // Fallback Cheerio: busca direta nas linhas da tabela de documentos se data-page não for encontrado
-    const tableRow = $('div.documents.card table tbody tr').first();
-    if (tableRow.length > 0) {
-      const dateText = tableRow.find('td').eq(0).text().trim() || tableRow.find('.date').text().trim();
-      const linkHref = tableRow.find('a[href*="Documento"], a[href*="pdf"], a[title*="Download"]').attr('href');
-      if (dateText || linkHref) {
-        return {
-          dataUltimoRelatorio: dateText || null,
-          linkRelatorio: linkHref ? (linkHref.startsWith('http') ? linkHref : `https://statusinvest.com.br${linkHref}`) : null
-        };
-      }
-    }
-
     return null;
   } catch (err) {
     console.warn(`[Axios Scrape Report Failed for ${url}]:`, (err as Error).message);
@@ -83,7 +93,7 @@ async function scrapeWithAxios(url: string): Promise<ReportData | null> {
 }
 
 /**
- * Fallback com Puppeteer simulando seleção no combobox Categories (value="6") do StatusInvest
+ * Fallback com Puppeteer simulando seleção no combobox Categories (value="6") e Types (value="26") do StatusInvest
  */
 async function scrapeWithPuppeteer(url: string): Promise<ReportData> {
   let browser = null;
@@ -96,24 +106,67 @@ async function scrapeWithPuppeteer(url: string): Promise<ReportData> {
     await page.setUserAgent(DEFAULT_HEADERS['User-Agent']);
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
-    // Tenta selecionar a categoria "Relatórios" (value="6") se o select existir
     try {
-      const selectSelector = 'select[name*="Categories"], select[data-formselect]';
-      await page.waitForSelector(selectSelector, { timeout: 3000 });
-      await page.select(selectSelector, '6');
+      await page.waitForSelector('#document-section', { timeout: 10000 });
+    } catch {}
+
+    // Tenta selecionar Categoria "Relatórios" (value="6") e Tipo "Relatório Gerencial" (value="26")
+    try {
       await page.evaluate(() => {
-        const sel = document.querySelector('select[name*="Categories"], select[data-formselect]') as HTMLSelectElement;
-        if (sel) {
-          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        const catSelect = document.querySelector('select[name="DocumentsFiiCategories"], select[data-formselect]') as HTMLSelectElement;
+        if (catSelect) {
+          catSelect.value = '6';
+          catSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        const liOptions = Array.from(document.querySelectorAll('.input-field .dropdown-content li span'));
+        const relatorioLi = liOptions.find(el => el.textContent?.trim() === 'Relatórios');
+        if (relatorioLi) {
+          (relatorioLi.parentElement as HTMLElement)?.click();
         }
       });
-      await new Promise(res => setTimeout(res, 2000));
-    } catch {
-      // Se não encontrar o select, prossegue com o conteúdo da página
+
+      await new Promise(res => setTimeout(res, 2500));
+
+      await page.evaluate(() => {
+        const typeSelect = document.querySelector('select[name="DocumentsFiiTypes"]') as HTMLSelectElement;
+        if (typeSelect) {
+          typeSelect.value = '26';
+          typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        const typeOptions = Array.from(document.querySelectorAll('.input-field .dropdown-content li span'));
+        const gerencialLi = typeOptions.find(el => el.textContent?.trim() === 'Relatório Gerencial');
+        if (gerencialLi) {
+          (gerencialLi.parentElement as HTMLElement)?.click();
+        }
+      });
+
+      await new Promise(res => setTimeout(res, 2500));
+    } catch (e) {
+      console.warn('Erro ao selecionar dropdown em Puppeteer:', e);
     }
 
     const result = await page.evaluate(() => {
-      // Tenta ler data-page
+      // 1. Busca primeiro nos elementos DOM renderizados
+      const listEls = Array.from(document.querySelectorAll('#document-section .list > div, div.documents.card .list > div'));
+      for (const el of listEls) {
+        const text = el.textContent ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+        const lowerText = text.toLowerCase();
+        const isReport = lowerText.includes('relatório') || lowerText.includes('relatorio');
+        const isCancelled = lowerText.includes('cancelado');
+
+        if (isReport && !isCancelled) {
+          const linkEl = el.querySelector('a[href*="exibirDocumento"], a[href*="fnet"], a[href*="pdf"]') as HTMLAnchorElement;
+          const dateMatch = text.match(/\d{2}\/\d{2}\/\d{4}/);
+          return {
+            dataUltimoRelatorio: dateMatch ? dateMatch[0] : null,
+            linkRelatorio: linkEl ? linkEl.href : null
+          };
+        }
+      }
+
+      // 2. Se não encontrou no DOM, busca no JSON data-page (apenas se for relatório)
       const card = document.querySelector('div.documents.card[data-page], [data-page]');
       if (card) {
         const rawJson = card.getAttribute('data-page');
@@ -123,25 +176,25 @@ async function scrapeWithPuppeteer(url: string): Promise<ReportData> {
             if (Array.isArray(docs) && docs.length > 0) {
               const relatorios = docs.filter((item: any) => {
                 const desc = (item.description || item.type || item.tipo || item.title || '').toLowerCase();
-                return desc.includes('relatório') || desc.includes('relatorio');
+                const statusName = String(item.statusName || item.status || '').toLowerCase();
+                const isCancelled = statusName.includes('cancelado') || item.status === 2;
+                return (desc.includes('relatório') || desc.includes('relatorio')) && !isCancelled;
               });
-              const target = relatorios.length > 0 ? relatorios[0] : docs[0];
-              return {
-                dataUltimoRelatorio: target.dataEntrega || target.date || null,
-                linkRelatorio: target.link || target.url || (target.id ? `https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?id=${target.id}` : null)
-              };
+              if (relatorios.length > 0) {
+                const target = relatorios[0];
+                return {
+                  dataUltimoRelatorio: target.dataEntrega || target.date || null,
+                  linkRelatorio: target.link || target.url || (target.id ? `https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?id=${target.id}` : null)
+                };
+              }
             }
           } catch {}
         }
       }
 
-      // Procura primeiro link de documento na página
-      const linkEl = document.querySelector('a[href*="exibirDocumento"], a[href*="downloadDocument"], a[href*="pdf"]') as HTMLAnchorElement;
-      const dateEl = document.querySelector('.documents .date, .documents td') as HTMLElement;
-
       return {
-        dataUltimoRelatorio: dateEl ? dateEl.textContent?.trim() || null : null,
-        linkRelatorio: linkEl ? linkEl.href : null
+        dataUltimoRelatorio: null,
+        linkRelatorio: null
       };
     });
 
@@ -172,3 +225,4 @@ export async function scrapeStatusInvestReport(url: string): Promise<ReportData>
   }
   return await scrapeWithPuppeteer(url);
 }
+
