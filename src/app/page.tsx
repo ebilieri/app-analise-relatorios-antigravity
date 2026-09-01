@@ -176,6 +176,12 @@ export default function HomePage() {
     setLoadingOp('reports');
 
     try {
+      await axios.post('/api/clear-report-fields');
+      const clearRes = await axios.get('/api/assets');
+      if (clearRes.data?.success && Array.isArray(clearRes.data.data)) {
+        setAssets(clearRes.data.data);
+      }
+
       for (let i = 0; i < reportEligible.length; i++) {
         const asset = reportEligible[i];
         setProcessingPapel(asset.Papel);

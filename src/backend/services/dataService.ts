@@ -241,3 +241,21 @@ export function deleteAsset(papel: string): boolean {
   saveToJSON(sorted);
   return true;
 }
+
+export function clearReportFieldsForEligibleAssets(): Asset[] {
+  const assets = getAssets();
+  const updatedAssets = assets.map(a =>
+    a.Relatorios === 'Sim'
+      ? {
+          ...a,
+          'Data Ultimo Relatorio': null,
+          'Link Download PDF': null,
+          baixado: false,
+          caminhoRelatorioLocal: null
+        }
+      : a
+  );
+
+  saveToJSON(sortAssets(updatedAssets));
+  return updatedAssets;
+}
